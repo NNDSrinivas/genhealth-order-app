@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+sqlalchemy
+pydantic
+PyPDF2
+python-multipart
+python-docx
+pdf2image
+pytesseract
