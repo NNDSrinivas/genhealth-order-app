@@ -93,6 +93,17 @@ function App() {
     fetchLogs();
   }, []);
 
+  // auto-refresh data when switching tabs
+  useEffect(() => {
+    if (activeTab === TABS.ACTIVITY) {
+      fetchLogs();
+    } else if (activeTab === TABS.DELETED) {
+      fetchDeletedOrders();
+    } else if (activeTab === TABS.ORDERS) {
+      fetchOrders();
+    }
+  }, [activeTab]);
+
   // auto-hide toast
   useEffect(() => {
     if (!toast) return;
@@ -125,6 +136,7 @@ function App() {
         description: '',
       });
       await fetchOrders();
+      await fetchLogs();
       setToast({ message: 'Order created', type: 'success' });
     } catch (err) {
       console.error(err);
@@ -215,6 +227,8 @@ function App() {
       const fileInput = document.querySelector('input[type="file"]');
       if (fileInput) fileInput.value = '';
       
+      await fetchOrders();
+      await fetchLogs();
       setToast({
         message: result.used_ocr
           ? '📄 Document processed with OCR - Info extracted! Now click "Create Order" to save.'
@@ -266,6 +280,7 @@ function App() {
       }
       await fetchOrders();
       await fetchDeletedOrders();
+      await fetchLogs();
       setToast({ message: 'Order deleted', type: 'success' });
       cancelDelete();
     } catch (err) {
