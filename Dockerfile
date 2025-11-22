@@ -35,8 +35,9 @@ COPY app ./app
 # (main.py expects to serve static from app/static)
 COPY --from=frontend-build /frontend/dist ./app/static
 
+# Railway sets $PORT; default to 8000 for local docker runs
 ENV PORT=8000
 
 # FastAPI app is in the app directory, but we need to run it from the right context
 WORKDIR /app/app
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]
