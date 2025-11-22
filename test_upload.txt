@@ -1,3 +1,0 @@
-Patient Name: John Doe
-DOB: 01/15/1985
-Address: 123 Main St
