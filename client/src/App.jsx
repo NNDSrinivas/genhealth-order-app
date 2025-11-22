@@ -86,6 +86,50 @@ function App() {
     });
   };
 
+  const formatDateOfBirth = (dateStr) => {
+    if (!dateStr || dateStr === '-') return dateStr;
+    
+    // Try to parse different date formats and normalize to MM/DD/YYYY
+    try {
+      // Handle formats like "12/05/1900", "1900-12-05", "12-05-1900", etc.
+      let date;
+      if (dateStr.includes('/')) {
+        const parts = dateStr.split('/');
+        if (parts[2] && parts[2].length === 4) {
+          // MM/DD/YYYY format
+          date = new Date(parts[2], parts[0] - 1, parts[1]);
+        } else if (parts[0] && parts[0].length === 4) {
+          // YYYY/MM/DD format
+          date = new Date(parts[0], parts[1] - 1, parts[2]);
+        }
+      } else if (dateStr.includes('-')) {
+        const parts = dateStr.split('-');
+        if (parts[0] && parts[0].length === 4) {
+          // YYYY-MM-DD format
+          date = new Date(parts[0], parts[1] - 1, parts[2]);
+        } else if (parts[2] && parts[2].length === 4) {
+          // MM-DD-YYYY or DD-MM-YYYY format
+          date = new Date(parts[2], parts[0] - 1, parts[1]);
+        }
+      } else {
+        // Try parsing as-is
+        date = new Date(dateStr);
+      }
+      
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleDateString('en-US', {
+          month: '2-digit',
+          day: '2-digit',
+          year: 'numeric'
+        });
+      }
+    } catch (e) {
+      console.warn('Could not parse date:', dateStr);
+    }
+    
+    return dateStr; // Return original if parsing fails
+  };
+
   useEffect(() => {
     // initial load
     fetchOrders();
@@ -134,6 +178,15 @@ function App() {
         last_name: '',
         date_of_birth: '',
         description: '',
+      });
+      // Clear extracted information after successful order creation
+      setExtracted({
+        first_name: '-',
+        last_name: '-',
+        date_of_birth: '-',
+        address: '-',
+        phone: '-',
+        used_ocr: null,
       });
       await fetchOrders();
       await fetchLogs();
@@ -206,7 +259,7 @@ function App() {
       setExtracted({
         first_name: result.first_name || '-',
         last_name: result.last_name || '-',
-        date_of_birth: result.date_of_birth || '-',
+        date_of_birth: formatDateOfBirth(result.date_of_birth) || '-',
         address: result.address || '-',
         phone: result.phone || '-',
         used_ocr: result.used_ocr,
@@ -217,7 +270,7 @@ function App() {
         ...prev,
         first_name: result.first_name || '',
         last_name: result.last_name || '',
-        date_of_birth: result.date_of_birth || '',
+        date_of_birth: formatDateOfBirth(result.date_of_birth) || '',
         description: autoDescription || prev.description,
       }));
 
