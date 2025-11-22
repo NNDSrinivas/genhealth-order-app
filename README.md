@@ -1,111 +1,187 @@
-# Order and Document Processing API
+# GenHealth Order and Document Processing System
 
-This project implements a minimal yet production‑ready REST API that
-provides CRUD operations for an `Order` entity, accepts PDF uploads and
-extracts patient information, and logs all user activity. It is written
-in Python using [FastAPI](https://fastapi.tiangolo.com/) and uses
-[SQLAlchemy](https://www.sqlalchemy.org/) with a local SQLite database for
-persistence. The code is organized for clarity and extensibility and is ready
-to be containerized and deployed.
+This repository contains a full-stack application built with FastAPI and React. It allows users to upload documents, extract patient information, and manage patient orders through a clean web interface. The project was designed to satisfy the requirements of the GenHealth full-stack assessment, with additional functionality and structure to reflect a more production-oriented implementation.
+
+## Overview
+
+The system includes:
+
+* A FastAPI backend with CRUD operations for orders, soft deletion, activity logging, and a document extraction pipeline.
+* A React frontend with separate tabs for Orders, Activity Logs, and Deleted Orders.
+* Support for PDF, DOCX, and text document uploads.
+* OCR fallback using Tesseract for scanned or image-based PDFs.
+* Automatic population of order fields based on extracted information.
+* A Docker-based deployment, with a production deployment ready for Railway.
 
 ## Features
 
-* **Order CRUD** – Create, read, update and delete orders via
-  predictable REST endpoints.
-* **PDF Upload and Extraction** – Upload a PDF document and
-  automatically extract the patient’s first name, last name and date of
-  birth using regular expressions. The extracted data is stored as a new
-  order for convenience.
-* **Activity Logging** – Every HTTP request is logged to the
-  `activity_logs` table with the method, path, response status, client IP
-  and raw body. This provides an audit trail for debugging and monitoring.
-* **SQLite Database** – Uses SQLite for ease of setup. Changing to
-  PostgreSQL or another database is straightforward via the
-  `SQLALCHEMY_DATABASE_URL` setting in `app/database.py`.
-* **Docker‑ready** – Includes a `Dockerfile` to build an image for
-  deployment. Simply run `docker build` and `docker run` to start the
-  service.
+### Order Management
 
-## Getting Started
+* Create, view, delete, and restore orders.
+* Automatically extract patient information from documents to populate order forms.
+* Dedicated "Deleted Orders" tab that shows soft-deleted items.
+* Real-time updates across all tabs with auto-refresh functionality.
 
-### Prerequisites
+### Document Upload and Extraction
 
-* Python 3.11 or newer
-* [Poetry](https://python-poetry.org/) or `pip` for dependency management
-* (Optional) Docker for containerization
+* Accepts PDF (text-based or scanned), DOCX, and plain text files.
+* Extracts first name, last name, date of birth, and when available, address and phone number.
+* Uses regular expression patterns for structured extraction.
+* Falls back to OCR when the document does not contain extractable text.
+* The frontend indicates whether OCR was used through a simple badge.
+* Smart date formatting that handles various input formats (YYYY-MM-DD, MM/DD/YYYY, etc.).
 
-### Installation
+### Activity Logging
 
-1. Clone this repository (or copy the `server` directory).
-2. Install dependencies:
+A logging middleware records every API request to a SQLite table. Each log entry includes:
 
-   ```bash
-   cd server
-   pip install -r requirements.txt
-   ```
+* HTTP method
+* Path
+* Response status code
+* Timestamp (with proper timezone handling)
+* Client IP
+* Request body with meaningful descriptions
 
-3. Start the application:
+The React interface includes an Activity Logs tab with the ability to expand individual entries to see more details. Logs auto-refresh when switching tabs and after performing actions.
 
-   ```bash
-   uvicorn app.main:app --reload
-   ```
+### Frontend
 
-   The API will be available at `http://127.0.0.1:8000`. Interactive
-   documentation is automatically generated at
-   `http://127.0.0.1:8000/docs` (Swagger UI) and
-   `http://127.0.0.1:8000/redoc`.
+* Built with React and Vite.
+* Three-tab interface for Orders, Activity Logs, and Deleted Orders.
+* Upload section that supports extraction and auto-filling of form fields.
+* Responsive layout with clean button and modal interactions.
+* Toast notifications for comprehensive user feedback.
+* Auto-refresh functionality for seamless data updates.
+* Proper timezone display and date formatting.
 
-### Running with Docker
+### Deployment
 
-To build and run the application using Docker:
+* The project uses a multi-stage Dockerfile that builds the frontend and runs the FastAPI backend.
+* Tesseract OCR and the necessary system packages are installed in the container.
+* Railway-compatible configuration with dynamic port handling.
+* The application is ready for deployment on Railway with HTTPS domain support.
 
-```bash
-cd server
-docker build -t order-api .
-docker run -p 8000:8000 order-api
+## Project Structure
+
+```
+genhealth/
+├── client/                # React frontend (Vite)
+│   ├── src/
+│   │   ├── App.jsx        # Main application component
+│   │   ├── App.css        # Styling
+│   │   └── main.jsx       # Entry point
+│   ├── package.json
+│   └── dist/              # Compiled production build
+│
+├── app/                   # FastAPI backend
+│   ├── main.py           # FastAPI application with middleware
+│   ├── schemas.py        # Pydantic models
+│   ├── models.py         # SQLAlchemy ORM models
+│   ├── database.py       # Database configuration
+│   └── static/           # Served frontend assets (in production)
+│
+├── requirements.txt       # Python dependencies
+├── Dockerfile            # Multi-stage Docker build
+├── .gitignore           # Git ignore rules
+└── README.md            # This file
 ```
 
-### API Endpoints
+## Running Locally
 
-| Method | Path | Description |
-| ----- | ---- | ----------- |
-| **POST** | `/orders` | Create a new order |
-| **GET** | `/orders` | List orders (supports `skip` and `limit` query params) |
-| **GET** | `/orders/{id}` | Retrieve a single order by ID |
-| **PUT** | `/orders/{id}` | Update an existing order |
-| **DELETE** | `/orders/{id}` | Delete an order |
-| **POST** | `/extract/patient-info` | Upload a PDF and extract patient info |
+### Backend (FastAPI)
 
-The API uses JSON request bodies for the order endpoints and
-`multipart/form-data` for the file upload endpoint.
-
-### Example: Extracting Patient Info
-
-To extract patient information from a PDF using `curl`:
+Install dependencies:
 
 ```bash
-curl -F "file=@/path/to/patient_document.pdf" \
-     http://127.0.0.1:8000/extract/patient-info
+pip install -r requirements.txt
 ```
 
-The response will be a JSON object with `first_name`, `last_name` and
-`date_of_birth` fields (possibly `null` if not found). The data will
-also be inserted into the `orders` table.
+Run the server:
 
-### Considerations & Next Steps
+```bash
+cd app
+uvicorn main:app --reload
+```
 
-This MVP intentionally keeps things simple to meet the assessment
-requirements within a short timeframe. For a production deployment you
-may want to consider:
+API documentation will be available at:
 
-* **Authentication and Authorization** to protect endpoints.
-* **Input Validation** and more robust error handling.
-* **Database Migrations** using Alembic.
-* **Async Database Operations** for improved performance.
-* **OCR Fallback** using tools like Tesseract for scanned PDFs.
-* **Cloud Deployment** to platforms such as AWS, GCP or Azure.
+* [http://localhost:8000/docs](http://localhost:8000/docs)
+* [http://localhost:8000/redoc](http://localhost:8000/redoc)
 
-## License
+### Frontend (React)
 
-This project is provided as part of a coding assessment and is intended
-for demonstration purposes only.
+```bash
+cd client
+npm install
+npm run dev
+```
+
+To build production assets:
+
+```bash
+npm run build
+```
+
+The compiled files will be placed in `client/dist/`, which are served by FastAPI in production.
+
+## Running with Docker
+
+Build the image:
+
+```bash
+docker build -t genhealth-app .
+```
+
+Run the container:
+
+```bash
+docker run -p 8000:8000 genhealth-app
+```
+
+Access the application at [http://localhost:8000/](http://localhost:8000/).
+
+## API Summary
+
+| Method | Path                  | Description                                       |
+| ------ | --------------------- | ------------------------------------------------- |
+| POST   | /orders               | Create an order                                   |
+| GET    | /orders               | List orders                                       |
+| GET    | /orders/{id}          | Retrieve a single order                           |
+| DELETE | /orders/{id}          | Soft delete an order                              |
+| GET    | /deleted-orders       | List deleted orders                               |
+| POST   | /extract/patient-info | Upload a document and extract patient information |
+| GET    | /activity-logs        | Retrieve activity logs                            |
+
+## Key Technical Features
+
+### Smart Middleware
+- Activity logging with path exclusions to prevent noise
+- Meaningful request descriptions based on endpoint context
+- Proper handling of multipart form data and JSON requests
+
+### OCR Integration
+- Seamless fallback from direct text extraction to OCR
+- Support for various document formats (PDF, DOCX, TXT)
+- Clear indication in UI when OCR processing was used
+
+### Data Management
+- SQLite database with proper relationship modeling
+- Soft deletion pattern for order management
+- Timezone-aware timestamp handling
+- Auto-refresh functionality across all data views
+
+### Production Readiness
+- Multi-stage Docker build for optimized images
+- Railway deployment compatibility with dynamic port binding
+- Comprehensive error handling and user feedback
+- Clean separation of concerns between frontend and backend
+
+## Development Notes
+
+Although this application was built for an assessment, the goal was to construct it as close to a production-ready system as possible within the time constraints. Features such as OCR fallback, detailed logging, Dockerized builds, auto-refresh functionality, and deployment readiness were included to reflect real engineering practices and provide a solid foundation for further development.
+
+The codebase emphasizes:
+- Clean, maintainable code structure
+- Proper error handling and user experience
+- Production deployment considerations
+- Real-world functionality beyond basic CRUD operations
